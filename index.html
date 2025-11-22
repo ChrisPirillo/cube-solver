@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Solver</title>
+    
+    <!-- SEO & Metadata -->
+    <meta name="description" content="Interactive 3D Rubik's Cube Solver. Paint your cube colors, generate a solution, and watch the step-by-step 3D animation.">
+    <meta name="keywords" content="Rubik's Cube, Solver, 3D Puzzle, Cube Solver, Arcade, Logic Puzzle, Interactive Game, HTML5 Cube">
+    <meta name="author" content="Chris Pirillo">
+    <link rel="canonical" href="https://pirillo.com/arcade/cube-solver.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/cube-solver.html">
+    <meta property="og:title" content="Rubik's Cube Solver">
+    <meta property="og:description" content="Solve your Rubik's Cube instantly with this interactive 3D tool. Paint, solve, and follow the moves.">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/cube-solver.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@ChrisPirillo">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+    <meta name="twitter:title" content="Rubik's Cube Solver">
+    <meta name="twitter:description" content="Interactive 3D Rubik's Cube Solver. Paint, solve, and animate.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/cube-solver.png">
+
+    <!-- Google Tag Manager -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+
+    <!-- Resource Hints & Preconnects -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://esm.sh">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Optimized Font Loading (Replaces @import) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></noscript>
+
+    <!-- Tailwind CSS (Critical - Kept in Head as requested) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- JS Libraries (Deferred for Performance) -->
+    <!-- These will execute in order after HTML parsing but before DOMContentLoaded/window.onload -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+    
+    <!-- Solver Library via ESM.sh -->
+    <script type="module">
+        import CubeModule from 'https://esm.sh/cubejs@1.3.2';
+        // Handle potential default export structure from esm.sh
+        window.Cube = CubeModule.default || CubeModule;
+        
+        console.log("Cube Engine Loaded via ESM");
+        
+        // Initialize immediately if possible
+        if (window.Cube && window.Cube.initSolver) {
+            setTimeout(() => {
+                console.log("Initializing Kociemba Tables...");
+                window.Cube.initSolver();
+                console.log("Solver Ready.");
+            }, 500);
+        }
+    </script>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Rubik's Cube Solver",
+      "url": "https://pirillo.com/arcade/cube-solver.html",
+      "description": "A modern, interactive 3D Rubik's Cube solver tool. Paint the colors of your physical cube and get a step-by-step solution.",
+      "genre": "Arcade",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "url": "https://pirillo.com"
+      },
+      "image": "https://pirillo.com/arcade/images/cube-solver.png",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+
+    <style>
+        /* Base styles - Font import moved to <link> for performance */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Deep Void Background - Immersive Dark */
+            background: radial-gradient(circle at center, #1e293b 0%, #000000 120%);
+            color: white;
+            overflow: hidden;
+        }
+
+        /* Panels adjusted for dark mode again */
+        .glass-panel {
+            background: rgba(2, 6, 23, 0.75); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px rgba(99, 102, 241, 0.6);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+
+        .color-swatch {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .color-swatch:hover:not(:disabled) { transform: scale(1.15); }
+        .color-swatch.active {
+            transform: scale(1.25);
+            border-color: white;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            z-index: 10;
+        }
+        .color-swatch:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .count-badge {
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            font-size: 9px;
+            font-weight: bold;
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas-container { outline: none; touch-action: none; }
+
+        /* Loader */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col select-none">
+
+    <!-- Header (Navigation/Tools) -->
+    <header class="absolute top-0 left-0 w-full p-6 z-30 flex justify-end items-start pointer-events-none">
+        <nav class="pointer-events-auto flex space-x-3" aria-label="Tools">
+            <button onclick="app.resetCamera()" class="p-3 rounded-full glass-panel hover:bg-white/10 text-white/80 transition-colors backdrop-blur-md" title="Reset View" aria-label="Reset Camera View">
+                <i class="fas fa-camera"></i>
+            </button>
+            <button onclick="app.resetCube()" class="p-3 rounded-full glass-panel hover:bg-white/10 text-white/80 transition-colors backdrop-blur-md" title="Clear Cube" aria-label="Reset Cube Colors">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <button onclick="app.showHelp()" class="p-3 rounded-full glass-panel hover:bg-white/10 text-white/80 transition-colors backdrop-blur-md" title="Help" aria-label="Show Instructions">
+                <i class="fas fa-question"></i>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 3D Canvas Container -->
+    <main id="canvas-container" class="absolute inset-0 z-0 cursor-move" aria-label="3D Rubik's Cube Interaction Area"></main>
+
+    <!-- Footer Controls -->
+    <footer class="absolute bottom-0 left-0 w-full z-30 p-6 flex flex-col items-center justify-end pointer-events-none">
+        
+        <!-- Notification -->
+        <div id="notification" role="status" class="mb-4 px-6 py-3 rounded-xl glass-panel text-white font-medium opacity-0 transition-all duration-300 translate-y-4 shadow-2xl"></div>
+
+        <!-- Editor Mode -->
+        <section id="editor-panel" class="glass-panel rounded-2xl p-4 mb-2 pointer-events-auto flex flex-col md:flex-row items-center gap-6 transition-all duration-500 border border-white/5 shadow-2xl" aria-label="Color Editor">
+            
+            <!-- Color Palette -->
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between text-[10px] uppercase tracking-wider font-bold text-slate-400 px-1">
+                    <span>Palette</span>
+                    <span id="paint-status">0/54 Painted</span>
+                </div>
+                <div class="flex gap-3" id="palette-container" role="radiogroup" aria-label="Color Palette">
+                    <!-- Buttons injected by JS -->
+                </div>
+            </div>
+
+            <div class="w-full h-px md:w-px md:h-12 bg-white/10"></div>
+
+            <!-- Action -->
+            <button onclick="app.solveCube()" id="solve-btn" disabled class="btn-primary px-8 py-3 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center gap-2 min-w-[160px] justify-center">
+                <span id="solve-btn-text">Paint All</span>
+                <div id="solve-spinner" class="spinner hidden"></div>
+                <i id="solve-icon" class="fas fa-magic"></i> 
+            </button>
+        </section>
+
+        <!-- Solver/Player Mode (Hidden initially) -->
+        <section id="player-panel" class="glass-panel rounded-2xl p-6 w-full max-w-2xl pointer-events-auto hidden flex-col gap-4 mb-2 shadow-2xl border border-white/5" aria-label="Solution Player">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Solution Steps</h2>
+                    <p class="text-xs text-slate-400"><span id="current-step-num">0</span> of <span id="total-steps">0</span> moves</p>
+                </div>
+                <button onclick="app.exitSolver()" class="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider px-3 py-1 rounded border border-transparent hover:border-white/20 transition-all">
+                    Edit
+                </button>
+            </div>
+            
+            <div class="flex items-center justify-between gap-4">
+                <button onclick="app.prevMove()" aria-label="Previous Move" class="h-14 w-14 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors flex items-center justify-center">
+                    <i class="fas fa-chevron-left text-white"></i>
+                </button>
+                
+                <div class="flex-1 text-center">
+                    <div class="text-4xl font-black text-indigo-400 mb-1 tracking-tight font-mono" id="move-display">READY</div>
+                    <div class="text-sm text-slate-300 font-medium" id="move-desc">Press Next to start</div>
+                </div>
+
+                <button onclick="app.nextMove()" aria-label="Next Move" class="h-14 w-14 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fas fa-chevron-right text-white text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Progress Line -->
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                <div id="progress-bar" class="h-full bg-indigo-500 w-0 transition-all duration-300"></div>
+            </div>
+        </section>
+    </footer>
+
+    <!-- Help Modal -->
+    <div id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm hidden">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-8 m-4 shadow-2xl border border-white/10">
+            <h2 id="help-title" class="text-2xl font-bold mb-4 text-white">Instructions</h2>
+            <ol class="space-y-4 text-slate-300 text-sm list-decimal list-inside marker:text-indigo-400 marker:font-bold">
+                <li><strong>Paint:</strong> The cube starts gray. Select a color and tap the cube stickers to match your real cube.</li>
+                <li><strong>Limits:</strong> You can only place <strong>9</strong> stickers of each color (including the center).</li>
+                <li><strong>Erase:</strong> Use the Gray (X) color to clear mistakes.</li>
+                <li><strong>Solve:</strong> Once all 54 stickers are painted validly, click Solve.</li>
+            </ol>
+            <button onclick="document.getElementById('help-modal').classList.add('hidden')" class="mt-6 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-colors">
+                Start
+            </button>
+        </div>
+    </div>
+
+<script>
+// Updated High-Contrast/Vivid Palette
+const PALETTE = {
+    U: { hex: 0xFFFFFF, css: '#FFFFFF', name: 'White' },
+    D: { hex: 0xFFEA00, css: '#FFEA00', name: 'Yellow' }, // Vivid Electric Yellow
+    F: { hex: 0x00DD30, css: '#00DD30', name: 'Green' },  // Neon Green
+    B: { hex: 0x2050FF, css: '#2050FF', name: 'Blue' },   // Bright Blue
+    R: { hex: 0xFF1010, css: '#FF1010', name: 'Red' },    // Pure Red
+    L: { hex: 0xFF5500, css: '#FF5500', name: 'Orange' }, // Deep Orange-Red
+    X: { hex: 0x334155, css: '#334155', name: 'Gray' } // Blank/Eraser
+};
+
+const CORE_COLOR = 0x1e293b; // Dark Slate
+const FACES = ['U', 'D', 'F', 'B', 'R', 'L'];
+
+class CubeApp {
+    constructor() {
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.pivot = new THREE.Object3D();
+        this.particles = null;
+        
+        this.cubies = []; 
+        this.stickers = []; 
+        this.paintCounts = { U:0, D:0, F:0, B:0, R:0, L:0, X:0 };
+        this.selectedColor = 'U';
+        this.solution = [];
+        this.stepIndex = -1;
+        this.isAnimating = false;
+        this.solverReady = false;
+
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.dragStart = { x:0, y:0 };
+
+        this.initUI();
+        this.init3D();
+        this.initEnvironment(); 
+        this.tryInitSolver();
+        
+        const dom = this.renderer.domElement;
+        dom.addEventListener('pointerdown', e => this.onPointerDown(e));
+        dom.addEventListener('pointerup', e => this.onPointerUp(e));
+        
+        this.animate();
+        window.addEventListener('resize', () => this.onResize());
+    }
+
+    async tryInitSolver() {
+        if (window.Cube && window.Cube.initSolver) {
+            window.Cube.initSolver();
+            this.solverReady = true;
+            console.log("Solver initialized in App");
+        } else {
+            // Poll briefly for library load
+            let checks = 0;
+            const interval = setInterval(() => {
+                checks++;
+                if (window.Cube && window.Cube.initSolver) {
+                    window.Cube.initSolver();
+                    this.solverReady = true;
+                    console.log("Solver initialized after wait");
+                    clearInterval(interval);
+                }
+                if(checks > 20) clearInterval(interval); // Stop checking after 10s
+            }, 500);
+        }
+    }
+
+    init3D() {
+        const container = document.getElementById('canvas-container');
+        this.scene = new THREE.Scene();
+        
+        // Immersive Void Fog
+        this.scene.fog = new THREE.FogExp2(0x020617, 0.02);
+
+        // LIGHTING
+        // 1. Ambient Light
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.4)); 
+
+        // 2. Random Key Light
+        const angle = Math.random() * Math.PI * 2; 
+        const height = 15 + Math.random() * 10; 
+        const radius = 15;
+        const lx = Math.cos(angle) * radius;
+        const lz = Math.sin(angle) * radius;
+
+        const mainLight = new THREE.SpotLight(0xffffff, 1.2);
+        mainLight.position.set(lx, height, lz);
+        mainLight.angle = Math.PI / 3;
+        mainLight.penumbra = 0.5;
+        mainLight.castShadow = true; 
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.bias = -0.0001;
+        this.scene.add(mainLight);
+
+        // 3. Camera Headlamp
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+        this.camera.position.set(6, 5, 8);
+        
+        const cameraLight = new THREE.PointLight(0xffffff, 0.5);
+        cameraLight.position.set(0, 0, 0); 
+        this.camera.add(cameraLight);
+        this.scene.add(this.camera); 
+
+        // 4. Rim Light (for depth against dark bg)
+        const rimLight = new THREE.PointLight(0x6366f1, 1.0); // Indigo rim
+        rimLight.position.set(-10, 10, -10);
+        this.scene.add(rimLight);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // TONE MAPPING: Switched to Linear to keep colors bold (ACES desaturates brights)
+        this.renderer.toneMapping = THREE.LinearToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        
+        container.appendChild(this.renderer.domElement);
+
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enablePan = false;
+        this.controls.enableDamping = true;
+        this.controls.minDistance = 4;
+        this.controls.maxDistance = 15;
+
+        this.scene.add(this.pivot);
+        this.createCube();
+    }
+
+    initEnvironment() {
+        // Suspended Particulate Matter
+        const particlesGeo = new THREE.BufferGeometry();
+        const particleCount = 1200; // More particles
+        const posArray = new Float32Array(particleCount * 3);
+        
+        for(let i = 0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 50; // Wider spread
+        }
+        
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.08,
+            color: 0xa5b4fc, // Light Indigo
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        this.particles = new THREE.Points(particlesGeo, particlesMat);
+        this.scene.add(this.particles);
+    }
+
+    createRoundedBox(w, h, d, r, s) {
+        const shape = new THREE.Shape();
+        const eps = 0.00001;
+        const radius = r - eps;
+        shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
+        shape.absarc(eps, h - r * 2, eps, Math.PI, Math.PI / 2, true);
+        shape.absarc(w - r * 2, h - r * 2, eps, Math.PI / 2, 0, true);
+        shape.absarc(w - r * 2, eps, eps, 0, -Math.PI / 2, true);
+        const geo = new THREE.ExtrudeGeometry(shape, {
+            depth: d - r * 2,
+            bevelEnabled: true,
+            bevelSegments: s * 2,
+            steps: 1,
+            bevelSize: radius,
+            bevelThickness: r,
+            curveSegments: s
+        });
+        geo.center();
+        return geo;
+    }
+
+    createCube() {
+        // 0.985 leaves 0.015 gap total
+        const coreGeo = this.createRoundedBox(0.985, 0.985, 0.985, 0.02, 3);
+        
+        // Sticker geo (thin)
+        const stickerGeo = new THREE.BoxGeometry(0.90, 0.90, 0.01); 
+
+        const coreMat = new THREE.MeshPhysicalMaterial({ 
+            color: CORE_COLOR, 
+            roughness: 0.6,
+            metalness: 0.1
+        });
+
+        for(let x=-1; x<=1; x++) {
+            for(let y=-1; y<=1; y++) {
+                for(let z=-1; z<=1; z++) {
+                    const mesh = new THREE.Mesh(coreGeo, coreMat);
+                    mesh.position.set(x, y, z);
+                    mesh.userData = { initial: new THREE.Vector3(x,y,z) }; 
+                    
+                    // Enable Shadows on Pieces
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+
+                    let isCenter = 0;
+                    if(x===0) isCenter++;
+                    if(y===0) isCenter++;
+                    if(z===0) isCenter++;
+                    const isFaceCenter = (isCenter === 2);
+
+                    // Add stickers
+                    if(x===1) this.addSticker(mesh, stickerGeo, 'R', isFaceCenter ? 'R' : 'X');
+                    if(x===-1) this.addSticker(mesh, stickerGeo, 'L', isFaceCenter ? 'L' : 'X');
+                    if(y===1) this.addSticker(mesh, stickerGeo, 'U', isFaceCenter ? 'U' : 'X');
+                    if(y===-1) this.addSticker(mesh, stickerGeo, 'D', isFaceCenter ? 'D' : 'X');
+                    if(z===1) this.addSticker(mesh, stickerGeo, 'F', isFaceCenter ? 'F' : 'X');
+                    if(z===-1) this.addSticker(mesh, stickerGeo, 'B', isFaceCenter ? 'B' : 'X');
+
+                    this.scene.add(mesh);
+                    this.cubies.push(mesh);
+                }
+            }
+        }
+        this.updatePaintCounts();
+    }
+
+    addSticker(parent, geo, face, initialColorKey) {
+        const mat = new THREE.MeshPhysicalMaterial({ 
+            color: PALETTE[initialColorKey].hex, 
+            roughness: 0.2,     
+            metalness: 0.0,     
+            clearcoat: 1.0,     
+            clearcoatRoughness: 0.1,
+            reflectivity: 1.0
+        });
+
+        const sticker = new THREE.Mesh(geo, mat);
+        
+        // Enable Shadows on Stickers
+        sticker.receiveShadow = true; 
+        sticker.castShadow = false;
+
+        const offset = 0.496; 
+        
+        if(face==='R') { sticker.position.x = offset; sticker.rotation.y = Math.PI/2; }
+        if(face==='L') { sticker.position.x = -offset; sticker.rotation.y = -Math.PI/2; }
+        if(face==='U') { sticker.position.y = offset; sticker.rotation.x = -Math.PI/2; }
+        if(face==='D') { sticker.position.y = -offset; sticker.rotation.x = Math.PI/2; }
+        if(face==='F') { sticker.position.z = offset; }
+        if(face==='B') { sticker.position.z = -offset; sticker.rotation.y = Math.PI; }
+
+        sticker.userData = { isSticker: true, face: face, parent: parent, colorKey: initialColorKey };
+        parent.add(sticker);
+        this.stickers.push(sticker);
+    }
+
+    initUI() {
+        const container = document.getElementById('palette-container');
+        container.innerHTML = ''; 
+        
+        const keys = [...FACES, 'X'];
+        
+        keys.forEach(k => {
+            const btn = document.createElement('button');
+            btn.id = `swatch-${k}`;
+            btn.className = `w-10 h-10 rounded-full color-swatch shadow-lg ${k==='U'?'active':''}`;
+            btn.style.backgroundColor = PALETTE[k].css;
+            btn.onclick = () => {
+                this.selectedColor = k;
+                document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            
+            const badge = document.createElement('div');
+            badge.id = `badge-${k}`;
+            badge.className = 'count-badge';
+            badge.innerText = '0';
+            btn.appendChild(badge);
+            
+            container.appendChild(btn);
+        });
+    }
+
+    onPointerDown(e) {
+        this.dragStart = { x: e.clientX, y: e.clientY };
+    }
+
+    onPointerUp(e) {
+        if(this.stepIndex !== -1) return; 
+        
+        const dx = e.clientX - this.dragStart.x;
+        const dy = e.clientY - this.dragStart.y;
+        if(Math.sqrt(dx*dx+dy*dy) > 10) return; 
+
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.stickers);
+
+        if(intersects.length > 0) {
+            const hit = intersects[0].object;
+            
+            const p = hit.userData.parent.position; 
+            let zeros = 0;
+            if(Math.abs(p.x)<0.1) zeros++;
+            if(Math.abs(p.y)<0.1) zeros++;
+            if(Math.abs(p.z)<0.1) zeros++;
+            
+            if(zeros >= 2) {
+                // Silently ignore center clicks without notification
+                new TWEEN.Tween(hit.scale).to({x:0.9, y:0.9}, 100).yoyo(true).repeat(1).start();
+                return; 
+            }
+
+            if (this.selectedColor !== 'X') {
+                 if (this.paintCounts[this.selectedColor] >= 9) {
+                     if (hit.userData.colorKey === this.selectedColor) return;
+                     this.showNotification(`Maximum 9 ${PALETTE[this.selectedColor].name} stickers allowed.`, 'error');
+                     return;
+                 }
+            }
+
+            hit.userData.colorKey = this.selectedColor;
+            hit.material.color.setHex(PALETTE[this.selectedColor].hex);
+            
+            this.updatePaintCounts();
+            
+            new TWEEN.Tween(hit.scale).to({x:1.1, y:1.1}, 100).yoyo(true).repeat(1).start();
+        }
+    }
+
+    updatePaintCounts() {
+        const counts = { U:0, D:0, F:0, B:0, R:0, L:0, X:0 };
+        this.stickers.forEach(s => {
+            const k = s.userData.colorKey;
+            if(counts[k] !== undefined) counts[k]++;
+        });
+        this.paintCounts = counts;
+        
+        let totalPainted = 0;
+        [...FACES, 'X'].forEach(k => {
+            const el = document.getElementById(`badge-${k}`);
+            if(el) el.innerText = counts[k];
+            const btn = document.getElementById(`swatch-${k}`);
+            if(k !== 'X' && btn) {
+                btn.disabled = (counts[k] >= 9);
+                totalPainted += counts[k];
+            }
+        });
+
+        const status = document.getElementById('paint-status');
+        status.innerText = `${totalPainted}/54 Painted`;
+        
+        const isValid = FACES.every(f => counts[f] === 9) && counts['X'] === 0;
+        
+        const btn = document.getElementById('solve-btn');
+        const btnText = document.getElementById('solve-btn-text');
+        
+        if(btn) {
+            btn.disabled = !isValid;
+            if(isValid) {
+                btnText.innerText = "Solve Cube";
+                status.className = "text-[10px] uppercase tracking-wider font-bold text-green-400 px-1";
+            } else {
+                btnText.innerText = "Paint All";
+                status.className = "text-[10px] uppercase tracking-wider font-bold text-slate-400 px-1";
+            }
+        }
+    }
+
+    getCubeString() {
+        const getFaceStickers = (face) => {
+            return this.stickers.filter(s => s.userData.face === face);
+        };
+
+        const sortU = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.z - pB.z) > 0.1) return pA.z - pB.z; 
+            return pA.x - pB.x; 
+        };
+
+        const sortR = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.y - pB.y) > 0.1) return pB.y - pA.y; 
+            return pB.z - pA.z;
+        };
+
+        const sortF = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.y - pB.y) > 0.1) return pB.y - pA.y;
+            return pA.x - pB.x;
+        };
+
+        const sortD = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.z - pB.z) > 0.1) return pB.z - pA.z;
+            return pA.x - pB.x;
+        };
+
+        const sortL = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.y - pB.y) > 0.1) return pB.y - pA.y;
+            return pA.z - pB.z;
+        };
+
+        const sortB = (a, b) => {
+            const pA = a.userData.parent.position;
+            const pB = b.userData.parent.position;
+            if (Math.abs(pA.y - pB.y) > 0.1) return pB.y - pA.y;
+            return pB.x - pA.x;
+        };
+
+        const sorters = { U: sortU, R: sortR, F: sortF, D: sortD, L: sortL, B: sortB };
+        const faceOrder = ['U', 'R', 'F', 'D', 'L', 'B'];
+        
+        let cubeStr = "";
+        
+        faceOrder.forEach(f => {
+            const arr = getFaceStickers(f).sort(sorters[f]);
+            arr.forEach(s => {
+                cubeStr += s.userData.colorKey;
+            });
+        });
+
+        return cubeStr;
+    }
+
+    solveCube() {
+        if(Object.values(this.paintCounts).some((v, i) => i < 6 && v !== 9)) {
+            this.showNotification("Cube is incomplete.", 'error');
+            return;
+        }
+
+        if (!window.Cube || !window.Cube.initSolver) {
+             this.showNotification("Solver Engine loading... Try again in 2s.", 'error');
+             this.tryInitSolver();
+             return;
+        }
+
+        const btn = document.getElementById('solve-btn');
+        const spinner = document.getElementById('solve-spinner');
+        const icon = document.getElementById('solve-icon');
+        
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        icon.classList.add('hidden');
+
+        setTimeout(() => {
+            try {
+                const stateStr = this.getCubeString();
+                console.log("Solving State:", stateStr);
+                
+                if (!this.solverReady) window.Cube.initSolver();
+
+                const cube = window.Cube.fromString(stateStr);
+                const result = cube.solve();
+                
+                const moves = result.split(' ').filter(m => m.length > 0);
+                
+                this.solution = moves;
+                this.enterPlayerMode();
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
+            } catch(e) {
+                console.error(e);
+                this.showNotification("Unsolvable State! Check colors.", 'error');
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                icon.classList.remove('hidden');
+            }
+        }, 100);
+    }
+
+    enterPlayerMode() {
+        document.getElementById('editor-panel').classList.add('hidden');
+        document.getElementById('editor-panel').classList.remove('flex');
+        document.getElementById('player-panel').classList.remove('hidden');
+        document.getElementById('player-panel').classList.add('flex');
+        
+        document.getElementById('total-steps').innerText = this.solution.length;
+        this.stepIndex = -1;
+        this.updatePlayerUI();
+        
+        new TWEEN.Tween(this.camera.position).to({x:6,y:5,z:8}, 1000).easing(TWEEN.Easing.Cubic.Out).start();
+    }
+
+    exitSolver() {
+        document.getElementById('player-panel').classList.add('hidden');
+        document.getElementById('player-panel').classList.remove('flex');
+        document.getElementById('editor-panel').classList.remove('hidden');
+        document.getElementById('editor-panel').classList.add('flex');
+        
+        const btn = document.getElementById('solve-btn');
+        const spinner = document.getElementById('solve-spinner');
+        const icon = document.getElementById('solve-icon');
+        
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        icon.classList.remove('hidden');
+    }
+
+    updatePlayerUI() {
+        const disp = document.getElementById('move-display');
+        const desc = document.getElementById('move-desc');
+        const stepSpan = document.getElementById('current-step-num');
+        const bar = document.getElementById('progress-bar');
+
+        stepSpan.innerText = this.stepIndex + 1;
+        
+        if(this.stepIndex === -1) {
+            disp.innerText = "START";
+            desc.innerText = "Ready to solve";
+            bar.style.width = '0%';
+        } else if(this.stepIndex >= this.solution.length) {
+            disp.innerText = "DONE";
+            desc.innerText = "Cube Solved!";
+            bar.style.width = '100%';
+            confetti();
+        } else {
+            const m = this.solution[this.stepIndex];
+            disp.innerText = m;
+            
+            const f = m[0];
+            const d = m.includes("'") ? "Counter-Clockwise" : (m.includes("2") ? "180° Turn" : "Clockwise");
+            const names = {U:'Top', D:'Bottom', F:'Front', B:'Back', R:'Right', L:'Left'};
+            desc.innerText = `Rotate ${names[f]} Face ${d}`;
+            
+            bar.style.width = `${((this.stepIndex+1)/this.solution.length)*100}%`;
+        }
+    }
+
+    async nextMove() {
+        if(this.stepIndex < this.solution.length - 1 && !this.isAnimating) {
+            this.stepIndex++;
+            this.updatePlayerUI();
+            await this.performMove(this.solution[this.stepIndex]);
+        }
+    }
+
+    async prevMove() {
+        if(this.stepIndex >= 0 && !this.isAnimating) {
+            let m = this.solution[this.stepIndex];
+            let inv = m.includes("'") ? m[0] : (m.includes("2") ? m : m+"'");
+            await this.performMove(inv, 200); 
+            this.stepIndex--;
+            this.updatePlayerUI();
+        }
+    }
+
+    performMove(move, speed=400) {
+        return new Promise(resolve => {
+            this.isAnimating = true;
+            const face = move[0];
+            let rad = Math.PI/2;
+            if(move.includes("'")) rad = -Math.PI/2;
+            if(move.includes("2")) rad = Math.PI;
+
+            const group = [];
+            const EPS = 0.1;
+            
+            this.cubies.forEach(c => {
+                const p = c.position;
+                let inGroup = false;
+                if(face==='U' && p.y > EPS) inGroup=true;
+                if(face==='D' && p.y < -EPS) inGroup=true;
+                if(face==='R' && p.x > EPS) inGroup=true;
+                if(face==='L' && p.x < -EPS) inGroup=true;
+                if(face==='F' && p.z > EPS) inGroup=true;
+                if(face==='B' && p.z < -EPS) inGroup=true;
+                
+                if(inGroup) group.push(c);
+            });
+
+            this.pivot.rotation.set(0,0,0);
+            this.pivot.position.set(0,0,0);
+            this.scene.add(this.pivot);
+            group.forEach(c => this.pivot.attach(c));
+
+            let axis = 'y';
+            if(face==='R' || face==='L') axis = 'x';
+            if(face==='F' || face==='B') axis = 'z';
+            
+            let dir = -1; 
+            if(face==='D') dir = 1; 
+            if(face==='R') dir = -1; 
+            if(face==='L') dir = 1; 
+            if(face==='F') dir = -1; 
+            if(face==='B') dir = 1; 
+
+            const target = rad * dir;
+
+            new TWEEN.Tween(this.pivot.rotation)
+                .to({[axis]: target}, speed)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .onComplete(() => {
+                    this.pivot.updateMatrixWorld();
+                    group.forEach(c => {
+                        this.scene.attach(c);
+                        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+                        c.rotation.set(
+                            Math.round(c.rotation.x/(Math.PI/2))*(Math.PI/2),
+                            Math.round(c.rotation.y/(Math.PI/2))*(Math.PI/2),
+                            Math.round(c.rotation.z/(Math.PI/2))*(Math.PI/2)
+                        );
+                        c.updateMatrix();
+                    });
+                    this.isAnimating = false;
+                    resolve();
+                })
+                .start();
+        });
+    }
+    
+    onResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    animate(time) {
+        requestAnimationFrame(t => this.animate(t));
+        TWEEN.update(time);
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+        
+        if(this.particles) {
+            this.particles.rotation.y += 0.0003;
+        }
+    }
+
+    showNotification(msg, type) {
+        const n = document.getElementById('notification');
+        n.innerText = msg;
+        n.className = `mb-4 px-6 py-3 rounded-xl glass-panel font-medium transition-all duration-300 translate-y-0 ${type==='error'?'text-red-400 border-red-500/50':'text-white'}`;
+        n.style.opacity = 1;
+        setTimeout(() => {
+            n.style.opacity = 0;
+            n.style.transform = 'translateY(1rem)';
+        }, 3000);
+    }
+
+    resetCamera() {
+        new TWEEN.Tween(this.camera.position).to({x:6,y:5,z:8}, 800).start();
+        new TWEEN.Tween(this.controls.target).to({x:0,y:0,z:0}, 800).start();
+    }
+
+    resetCube() {
+        this.stickers.forEach(s => {
+            const p = s.userData.parent.position;
+            let zeros = 0;
+            if(Math.abs(p.x)<0.1) zeros++;
+            if(Math.abs(p.y)<0.1) zeros++;
+            if(Math.abs(p.z)<0.1) zeros++;
+            
+            if(zeros < 2) {
+                s.material.color.setHex(PALETTE.X.hex);
+                s.userData.colorKey = 'X';
+            }
+        });
+        this.updatePaintCounts();
+    }
+    
+    showHelp() { document.getElementById('help-modal').classList.remove('hidden'); }
+}
+
+let app;
+window.onload = () => { app = new CubeApp(); };
+</script>
+</body>
+</html>
